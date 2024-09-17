@@ -1,0 +1,103 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --main-content: 48rem;
+}
+
+.path-div {
+  margin: 1rem 0 1rem 0;
+}
+
+a {
+  color: darkblue;
+}
+
+html {
+  font-size: 1.2rem;
+  font-family: "Geist Sans";
+}
+
+h1,
+h2 {
+  margin: 1rem 0 1rem 0;
+}
+
+h3 a {
+  color: slategrey;
+  text-decoration: none;
+}
+
+.note-container {
+  display: flex;
+  flex-direction: column; 
+}
+
+.note-container img {
+  /* margin-right: auto; */
+  /* margin-left: auto; */
+  width: calc(var(--main-content) / 2);
+}
+
+pre {
+  margin: 1rem 0 0 0;
+  background-color: #f8f8f8;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #2b6cb0;
+  color: #2d3748;
+  padding: 10px 15px;
+  border-radius: 3px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+code {
+  padding: 2px 4px;
+  color: #2d3748; 
+  background-color: #f8f8f8;
+  font-family: "Geist Mono", 'Courier New', Courier, monospace;
+  border: 1px solid #e2e8f0;
+  border-radius: 3px;
+}
+
+pre code {
+  border: none;
+  background-color: transparent;
+  color: inherit;
+}
+
+
+
+
+
+
+
+
+
+p {
+  line-height: 1.4;
+}
+
+.linkbar {
+  margin: 1rem 0 0 0;
+}
+
+.footer {
+  margin: 1rem 0 0 0;
+}
+
+.layout-root {
+  display: flex;
+  justify-content: center;
+}
+
+.layout-main {
+  max-width: var(--main-content);
+}
+
+.note {
+  margin: 1rem 0 0 0;
+}

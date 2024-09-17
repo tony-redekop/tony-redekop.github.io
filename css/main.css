@@ -1,0 +1,52 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --main-content: 42rem;
+}
+
+a {
+  color: darkblue;
+}
+
+html {
+  font-size: 1.2rem;
+  font-family: "Geist Sans";
+}
+
+h1,
+h2 {
+  margin: 1rem 0 1rem 0;
+}
+
+h3 a {
+  color: slategrey;
+}
+
+p {
+  line-height: 1.4;
+}
+
+.linkbar {
+  margin: 1rem 0 2rem 0;
+}
+
+.footer {
+  margin: 2rem 0 0 0;
+}
+
+.layout-root {
+  display: flex;
+  justify-content: center;
+}
+
+.layout-main {
+  max-width: var(--main-content);
+}
+
+.note {
+  margin: 1rem 0 0 0;
+}
