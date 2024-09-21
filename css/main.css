@@ -50,3 +50,13 @@ p {
 .note {
   margin: 1rem 0 0 0;
 }
+
+@media (max-width: 600px) {
+  .layout-main {
+    max-width: calc(100vw - 4rem);
+  }
+
+  html {
+    font-size: .5rem;
+  }
+}
