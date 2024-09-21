@@ -52,11 +52,13 @@ p {
 }
 
 @media (max-width: 600px) {
-  .layout-main {
-    max-width: calc(100vw - 4rem);
-  }
-
   html {
     font-size: .5rem;
+  }
+}
+
+@media (max-width: 1000px) {
+  .layout-main {
+    max-width: calc(100vw - 4rem);
   }
 }
