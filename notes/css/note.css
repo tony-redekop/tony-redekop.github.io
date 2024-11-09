@@ -22,8 +22,10 @@ html {
 }
 
 h1,
-h2 {
-  margin: 1rem 0 1rem 0;
+h2,
+h3,
+h4 {
+  margin: 0 0 1rem 0;
 }
 
 h3 a {
@@ -37,11 +39,14 @@ h3 a {
 }
 
 .note-container img {
-  width: calc(var(--main-content) / 2);
+  /* max-width: calc(var(--main-content) / 2); */
+  max-width: calc(var(--main-content) - 2rem);
+  margin-bottom: 1rem;
+  margin-left: 1rem;
 }
 
 pre {
-  margin: 1rem 0 1rem 0;
+  margin: 0 0 1rem 0;
   background-color: #f8f8f8;
   border: 1px solid #e2e8f0;
   border-left: 4px solid #2b6cb0;
@@ -70,6 +75,7 @@ pre code {
 
 p {
   line-height: 1.4;
+  margin: 0 0 1rem 0;
 }
 
 .linkbar {
@@ -91,6 +97,22 @@ p {
 
 .note {
   margin: 1rem 0 0 0;
+}
+
+ul, ol {
+    margin-left: 1rem;
+    margin-bottom: 1rem;
+    padding-left: 1rem; /* Add padding to align with headers */
+    /* padding-bottom: 1rem; */
+}
+
+ul ul {
+    margin-bottom: 0rem;
+    padding-bottom: 0rem;
+}
+
+li {
+    margin-bottom: 0rem;
 }
 
 @media (max-width: 600px) {

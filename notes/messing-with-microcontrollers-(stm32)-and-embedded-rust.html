@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Antonio's Lair</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/@fontsource/geist-sans@5.0.3/index.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/note.css" />
+    <link rel="stylesheet" href="css/img.css" />
+  </head>
+  <body>
+    <div class="layout-root">
+      <div class="layout-main">
+        <div class="path-div">
+          <p>
+            <a href="../index.html">~</a> / <a href="../notes">notes</a> /
+            <a href="../notes/messing-with-microcontrollers-(stm32)-and-embedded-rust.html">messing-with-microcontrollers-(stm32)-and-embedded-rust</a>
+          </p>
+          <p></p>
+        </div>
+        <p>2024-11-08</p>
+        <p>
+          <br />
+        </p>
+
+        <div class="note-container"><h1>Messing with Microcontrollers (STM32) — Making an LED Blink the Hard Way</h1>
+<h2>Motivation</h2>
+<p>My adventures in embedded systems started about a year ago, with <a href="https://www.udemy.com/course/embedded-systems-bare-metal-programming/">Embedded Systems Bare Metal Programming</a>, a paid course taught by Israel Gbati.  This course is highly-regarded, comprehensive, and teaches the student to write bare metal firmware without the use of libraries and header files.  Throughout the course, the instructor stresses the importance of referencing and understanding the chip manual and board documentation, along with other professional best practices.  The course is taught using C, but I had worked through the infamous K&amp;R book a couple of years ago, so I was comfortable with it.  So I worked through the first projects in the course, consulted textbooks, videos, articles, and LLMs (ChatGPT) until I had constructed a satisfactory mental model of embedded systems and how they work.</p>
+<p>Wanting to learn and challenge myself further, I decided my goal was going be the implementation of drivers for the various peripherals of an STM32-based development board.  I would be using the Rust programming language.  What better way to begin than by blinking an LED?</p>
+<p><strong>Goal:</strong> Blinking an LED on the STM32F411 &quot;BlackPill&quot; Development Board using embedded Rust</p>
+<h2>Embedded Concepts</h2>
+<h3>Bare Metal</h3>
+<p>Bare Metal (MCU) → PAC → HAL → BSP</p>
+<ul>
+<li>Bare Metal represents the lowest level of abstraction in embedded programming.  In a bare metal environment, no code has been loaded before your program, including the standard library.</li>
+<li>Peripheral access crate (PAC) is a Rust abstraction layer that provides access to peripherals.  It is generated from System View Description (SVD) files provided by the chip vendor.</li>
+<li>The Hardware abstraction layer (HAL) is implemented on top of of a PAC.</li>
+<li>A Board-Support Crate (BSP) provides a high-level interface for a specific board.</li>
+</ul>
+<h3>Memory-Mapped I/O</h3>
+<ul>
+<li>Memory-mapped I/O is a construct where the the memory space of the microcontroller is mapped to peripheral registers.  Memory addresses pertaining to peripheral registers are referenced (cast to pointer type) and manipulated directly.  The Memory Map for a microcontroller can be found in the chip's reference manual.</li>
+<li>Accessing peripheral registers must be done in a &quot;volatile&quot; way.  The state of memory can change due to HW or other events outside of the CPU's control, thus we restrict the compiler from implementing some optimizations:
+<ul>
+<li>Caching is disabled</li>
+<li>Omitting multiple reads or writes to the same memory address is disabled</li>
+</ul>
+</li>
+</ul>
+<h2>Tool Chain</h2>
+<ul>
+<li>Host: Lenovo T480 running Arch Linux</li>
+<li>HW debugger: ST-Link V2</li>
+<li>IDE: Neovim with LSP configured for Rust</li>
+<li>SW Debugger: <code>arm-none-eabi-gdb</code></li>
+</ul>
+<h2>Development Board (Target)</h2>
+<img src="../img/blackpill.jpg" alt="black-pill" />
+<ul>
+<li>Development board: WeAct Studio BlackPill v3.1
+MCU is STM32F411CEU6
+<ul>
+<li>512 KB of flash</li>
+<li>128 KB of SRAM</li>
+<li>Runs at 100 Mhz
+USB-C connector with 3.3V 100mA LDO regulator
+25mhz and 32.768 KHz crystals on board
+Peripherals</li>
+<li>UART, I2C, SPI, I2S</li>
+<li>ADC multiplexed to 10 inputs</li>
+<li>User controlled LED
+Pin-Out Diagram</li>
+<li>See <a href="obsidian://open?vault=vault-arch-pc&amp;file=blackpill%2Fsupporting%20files%2F4877_pinout_original-dimensions-STM32F411CEU6_WeAct_Black_Pill_V2.0.pdf">Pin-Out Diagram</a></li>
+</ul>
+</li>
+</ul>
+<h2>Tools and Consumables</h2>
+<img src="../img/materials.jpg" alt="soldering-materials" />
+<ul>
+<li>Soldering iron: PINECEL Smart Mini Portable Soldering Iron</li>
+<li>Solder: Rosin core, .031(8mm), Sn63/Pb37
+<ul>
+<li>Rosin core negates the need for flux</li>
+</ul>
+</li>
+<li>Desoldering Wick: Soder-Wick Rosin Size 2, 80-2-5</li>
+<li>Tip Cleaner: Brass Sponge</li>
+<li>Helping Hands (magnifying glass and clamps with stand)</li>
+<li>Breadboard</li>
+</ul>
+<h2>Soldering the Header Pins</h2>
+<h3>Setup</h3>
+<img src="../img/helping-hands.jpg" alt="helping-hands" />
+<ul>
+<li>Mount the headers onto a breadboard, then mount the development board onto the headers</li>
+<li>Use a Helping Hands tool with a magnifier and alligator clips</li>
+</ul>
+<h3>Technique</h3>
+<ul>
+<li>Pre-heat the soldering iron to between 350° and 400°C (375° C)</li>
+<li>Tin the tip for better heat conductivity and to extend the life of the iron</li>
+<li>Avoid excessive heat warpage.</li>
+<li>Avoid crossing the dev board with the iron, i.e. the iron should come in from the periphery and not from across the dev board</li>
+<li>Use desoldering wick as needed</li>
+</ul>
+<h3>Soldering Results</h3>
+<img src="../img/soldered-board.jpg" alt="soldered-board" />
+<h3>Cleaning and Equipment Care</h3>
+<ul>
+<li>To cleaning the tip, use a brass coil sponge.  It is also possible to use a wet sponge, but the rapid cooling of the wet sponse may decrease the life of the iron.</li>
+<li>Tin the iron before turning it off</li>
+</ul>
+<h2>Connecting the HW Debugger</h2>
+<img src="../img/hw-debugger-setup.jpg" alt="hw-debugger-setup" />
+<ul>
+<li>The HW debugger is a bridge between the host and the target
+<ul>
+<li>connected to the host via USB</li>
+<li>connects to the target via the Serial Wire Debug (SWD) interface</li>
+</ul>
+</li>
+</ul>
+<h2>Writing the LED driver</h2>
+<ul>
+<li>See my <a href="https://github.com/tony-redekop/embedded-rust-stm32/tree/main/demos/blink-led">blink-led</a> repo for full code</li>
+</ul>
+<h2>Flashing the Firmware</h2>
+<p><code>openocd -d -f interface/stlink.cfg -f target/stm32f4x.cfg -c &quot;program &lt;BINARY&gt; verify reset exit&quot;</code></p>
+<h2>Success!</h2>
+<img src="../img/blink-led.gif" alt="blink-led-gif" id="blink-led-gif">
+<h2>References</h2>
+<ol>
+<li>
+<p><strong>Embedded Rust Book</strong><br />
+The Embedded Rust Book. Retrieved from <a href="https://docs.rust-embedded.org/book/">https://docs.rust-embedded.org/book/</a>.</p>
+</li>
+<li>
+<p><strong>Embedded Systems Course by Israel Gbati</strong><br />
+Gbati, I. <em>Embedded Systems Programming on ARM Cortex-M</em>. Udemy Course. Retrieved from <a href="https://www.udemy.com">https://www.udemy.com</a>.</p>
+</li>
+<li>
+<p><strong>STM32F411CEU6 Reference Manual</strong><br />
+STMicroelectronics. (n.d.). <em>RM0383: STM32F411xC/E Advanced ARM®-based 32-bit MCUs Reference Manual</em>. Retrieved from <a href="https://www.st.com">https://www.st.com</a>.</p>
+</li>
+<li>
+<p><strong>Computer Organization and Design ARM Edition</strong><br />
+Patterson, D. A., &amp; Hennessy, J. L. (2016). <em>Computer Organization and Design ARM Edition: The Hardware Software Interface</em> (1st ed.). Morgan Kaufmann.</p>
+</li>
+<li>
+<p><strong>WeAct. STM32F411CE WeAct Black Pill Schematic</strong><br />
+Retrieved from <a href="https://github.com/WeActTC/MiniSTM32F4x1">https://github.com/WeActTC/MiniSTM32F4x1</a></p>
+</li>
+<li>
+<p><strong>STMicroelectronics. (n.d.). STM32F411CE MCU Data Sheet.</strong><br />
+Retrieved from <a href="https://www.st.com">https://www.st.com</a>.</p>
+</li>
+<li>
+<p><strong>Proietti, M. (2017). Mastering STM32</strong><br />
+Leanpub. Retrieved from <a href="https://leanpub.com/mastering-stm32">https://leanpub.com/mastering-stm32</a>.</p>
+</li>
+</ol></div>
+        <br />
+        <div class="footer">Antonio Redekop © 2024</div>
+      </div>
+    </div>
+  </body>
+</html>
