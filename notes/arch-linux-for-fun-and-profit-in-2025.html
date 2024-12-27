@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Antonio's Lair</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/@fontsource/geist-sans@5.0.3/index.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/note.css" />
+    <link rel="stylesheet" href="css/img.css" />
+  </head>
+  <body>
+    <div class="layout-root">
+      <div class="layout-main">
+        <div class="path-div">
+          <p>
+            <a href="../index.html">~</a> / <a href="../notes">notes</a> /
+            <a href="../notes/arch-linux-for-fun-and-profit-in-2025.html">arch-linux-for-fun-and-profit-in-2025</a>
+          </p>
+          <p></p>
+        </div>
+        <p>2024-12-24</p>
+        <p>
+          <br />
+        </p>
+
+        <div class="note-container"><h1>Arch Linux for Fun and Profit in 2025 — Installing Arch with Full Disk Encryption</h1>
+<h2>Motivation</h2>
+<p>My computing setup has expanded since I shared my <a href="/how-i-compute.md">first public note</a> earlier this year. In addition to my reliable Lenovo Thinkpad T480, I have since built an x86-64 based small form factor (SSF) PC. My plans for this new machine include productivity and programming use — and perhaps the occasional match of CS2. Naturally, I have installed my preferred Linux distro (Arch, btw).</p>
+<p>This note includes the full installation sequence and some of my learnings.</p>
+<p>Contents:</p>
+<ul>
+<li><a href="#philosophy">philosphy</a></li>
+<li><a href="#my-setup">my setup</a></li>
+<li><a href="#partitioning-scheme">partitioning scheme</a></li>
+<li><a href="#installation-sequence">installation sequence</a></li>
+</ul>
+<h2>Philosophy</h2>
+<p>My philosophy is to keep my install light-weight and as stable as possible, despite the rolling release distribution model employed by Arch. The minimal base package, extensive documentation, <code>pacman</code>, and the combination of <code>yay</code> and the AUR, I think, has cemented Arch as my preferred distro for personal or professional use (Xubuntu for enterprise work).  I am willing to accept that things may break sometimes and see it as a learning opportunity.  I've opted to follow a minimal and proven set-up paradigm as you will find below — it follows that I've chosen to keep using X in lieu of Wayland for the forseeable future.</p>
+<h2>My Setup</h2>
+<pre><code>arch release: 2024.12.01
+arch version: x86_64
+init system: systemd
+boot mode: UEFI 
+bootloader: GRUB
+display server: X
+desktop environment: xfce4
+window manager: xwfm4
+network manager: iwd w/ built in DHCP
+</code></pre>
+<h2>Partitioning Scheme</h2>
+<p>Before beginning the install, it is important to think about the partioning scheme.  The below assumes the use of a GUID Partition Table (GPT).</p>
+<p><strong>Option #1: Full Disk Encryption (encrypted <code>/boot</code>)</strong></p>
+<pre><code>NAME          MAJ:MIN RM  SIZE RO TYPE  MOUNTPOINTS
+nvme0n1       259:0    0  1.8T  0 disk  
+├─nvme0n1p1   259:1    0  500M  0 part  /efi
+├─nvme0n1p2   259:2    0    1G  0 part  
+│ └─cryptboot 254:0    0    1G  0 crypt /boot
+├─nvme0n1p3   259:3    0  100G  0 part  
+│ └─cryptroot 254:1    0  100G  0 crypt /
+└─nvme0n1p4   259:4    0  1.6T  0 part  
+  └─crypthome 254:2    0  1.6T  0 crypt /home
+</code></pre>
+<p>This scheme provides the greatest level of security by decreasing the attack surface of the system. An encrypted boot partition protects against the [Evil Maid] attack where a nefarious actor with physical access to the system compromises the kernel and initramfs image when the user is logged on and the computer is left unnattended.  The EFI System Partition (ESP) containing the bootloader is mounted to <code>/efi</code> and is the only unencrypted block.  No secrets are stored on the unencrypted ESP.</p>
+<p>A major draw-back of this scheme is the added complexity and the longer boot time.  When the system boots, the bootloader must access the kernel and the initramfs image.  With an encrypted <code>/boot</code>, the bootloader must first decrypt the partition to gain access to its content. Luckily, <code>GRUB</code> provides the ability to unlock encrypted LUKs devices.  However, as I found out first-hand, GRUB is excrutiatingly slow at performing this function.  In my testing, it took GRUB almost (20) seconds to unlock <code>/boot</code>, which is simply not acceptable for many who daily drive their machine or use it for productivity.</p>
+<p>Though I initially went with Option #1 and an encrypted <code>/boot</code> for the added security, I quickly grew tired of the increased boot times, so I wiped my system and started from scratch using Option 2: Block Device Encryption (i.e. encrypted root and home with decrypted <code>/boot</code> partition).  Instructions for achieving full disk encryption are included in these notes, for posterity and to allow others to try it out for themselves.  In my case, it was not worth it.</p>
+<p><strong>Option #2: Block Device Encryption (non-encrypted <code>/boot</code>)</strong></p>
+<pre><code>NAME          MAJ:MIN RM  SIZE RO TYPE  MOUNTPOINTS
+nvme0n1       259:0    0  1.8T  0 disk  
+├─nvme0n1p1   259:1    0    1G  0 part  /boot
+├─nvme0n1p2   259:2    0  100G  0 part  
+│ └─cryptroot 254:0    0  100G  0 crypt /
+└─nvme0n1p3   259:3    0  1.7T  0 part  
+  └─crypthome 254:1    0  1.7T  0 crypt /home
+</code></pre>
+<p>This scheme encrypts everything but <code>/boot</code>.  As such, the system is not protected from Evil Maid attacks.  However, this seems to be the most common setup as the complexity and boot times for full disk encryption are not worth it for most people.  All secrets are kept in the encrypted partitions, and unless you make a habit of leaving your system logged in and physically unnattended around unknown individuals, your kernel and initramfs will most likely not be tampered with.  I highly encourage others to try both schemes for themselves; it is satisfying to confirm your preference first-hand.</p>
+<p>Enough background, below is the installation sequence:</p>
+<h2>Installation Sequence</h2>
+<p>Reference <a href="https://wiki.archlinux.org/title/Installation_guide">Arch Linux Installation Guide</a></p>
+<ol>
+<li>
+<p>Create desired partitioning scheme using <code>fdisk</code></p>
+<ul>
+<li>See Option #1 or Option #2 above.</li>
+</ul>
+</li>
+<li>
+<p>Prepare and mount the non-boot partitions</p>
+<ul>
+<li>Create and unlock LUKS root device
+<ul>
+<li><code>cryptsetup -v luksFormat /dev/&lt;root_partition&gt;</code></li>
+<li><code>cryptsetup open /dev/&lt;root_partition&gt; &lt;cryptroot&gt;</code></li>
+</ul>
+</li>
+<li>Create file system and mount the encrypted root partitiion
+<ul>
+<li><code>mkfs.ext4 /dev/mapper/&lt;cryptroot&gt;</code></li>
+<li><code>mount /dev/mapper/&lt;cryptroot&gt; /mnt</code></li>
+</ul>
+</li>
+<li>Repeat the same steps for <code>/home</code>
+<ul>
+<li><code>cryptsetup -v luksFormat /dev/&lt;home_partition&gt;</code></li>
+<li><code>cryptsetup open /dev/&lt;home_partition&gt; &lt;crypthome&gt;</code></li>
+<li><code>mkfs.ext4 /dev/mapper/&lt;crypthome&gt;</code></li>
+<li><code>mount --mkdir /dev/mapper/&lt;crypthome&gt; /mnt/home</code></li>
+<li>Note: <code>cryptroot</code> and <code>crypthome</code> can be any name you choose but must remain subsequently consistent</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>Prepare and mount the boot partition</p>
+<ul>
+<li>For Option #1: Encrypted <code>/boot</code>
+<ul>
+<li>Must use LUKS2 with PBKDF2 for partitions that GRUB will need to unlock
+<ul>
+<li><code>cryptsetup luksFormat --pbkdf pbkdf2 &lt;boot_partition&gt;</code></li>
+</ul>
+</li>
+<li><code>cryptsetup open /dev/&lt;boot_partition&gt; &lt;cryptboot&gt;</code></li>
+<li><code>mount /dev/mapper/&lt;cryptboot&gt; /mnt/boot</code></li>
+</ul>
+</li>
+<li>For Option #2: Unencrypted <code>/boot</code>
+<ul>
+<li><code>mkfs.fat -F32 &lt;boot_partition&gt;</code></li>
+<li><code>mount --mkdir &lt;boot_partition&gt; /mnt/boot</code></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>Install essential packages with <code>pacstrap</code></p>
+<ul>
+<li><code>pacstrap -K /mnt base linux linux-firmware</code></li>
+<li>Recommended:
+<ul>
+<li>text editor
+<ul>
+<li><code>vi</code>, <code>vim</code>, <code>nvim</code></li>
+</ul>
+</li>
+<li>manual pages
+<ul>
+<li><code>man-db</code>, <code>man-pages</code></li>
+</ul>
+</li>
+<li>utilities
+<ul>
+<li><code>unzip</code>, <code>sudo</code>, <code>openssh</code></li>
+</ul>
+</li>
+<li>networking
+<ul>
+<li><code>iwd</code></li>
+</ul>
+</li>
+<li>console fonts
+<ul>
+<li><code>terminus-font</code></li>
+</ul>
+</li>
+<li>bootloader
+<ul>
+<li><code>grub</code></li>
+<li><code>efibootmgr</code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>Generate fstab</p>
+<ul>
+<li><code>genfstab -U /mnt &gt;&gt; /mnt/etc/fstab</code></li>
+</ul>
+</li>
+<li>
+<p>Change the apparent root directory</p>
+<ul>
+<li><code>arch-chroot /mnt</code></li>
+</ul>
+</li>
+<li>
+<p>Set timezone</p>
+<ul>
+<li><code>ln -sf /usr/share/zoneinfo/Region/City /etc/localtime</code></li>
+</ul>
+</li>
+<li>
+<p>Generate <code>/etc/adjtime</code></p>
+<ul>
+<li><code>hwclock --systohc</code></li>
+</ul>
+</li>
+<li>
+<p>Revise <code>/etc/locale.gen</code> to uncomment <code>en_US.UTF-8</code></p>
+</li>
+<li>
+<p>Create the hostname file</p>
+<ul>
+<li><code>echo &quot;myhostname&quot; &gt; /etc/hostname</code></li>
+</ul>
+</li>
+<li>
+<p>Configure <code>/etc/mkinitcpio.conf</code></p>
+<ul>
+<li>Note: my set up uses a busybox-based <code>initramfs</code>; the hooks are different for systemd-based <code>initramfs</code></li>
+<li>Add 'encrypt' option to HOOKS
+<ul>
+<li>HOOKS=(base udev autodetect microcode modconf kms keyboard keymap consolefont block encrypt filesystems fsck)</li>
+</ul>
+</li>
+<li>Add keyfile for root paretition to FILES
+<ul>
+<li><code>FILES=(/etc/cryptsetup-keys.d/cryptroot.key)</code></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>Regenerate <code>initramfs</code></p>
+<ul>
+<li><code>mkinitcpio -P</code></li>
+</ul>
+</li>
+<li>
+<p>Create keyfile and add as LUKS key for root and home partitions</p>
+<ul>
+<li><code>dd bs=512 count=4 if=/dev/random iflag=fullblock | install -m 0600 /dev/stdin /etc/cryptsetup-keys.d/cryptroot.key</code></li>
+<li><code>cryptsetup -v luksAddKey /dev/nvme0n1p2 /etc/cryptsetup-keys.d/cryptroot.key</code></li>
+<li><code>dd bs=512 count=4 if=/dev/random iflag=fullblock | install -m 0600 /dev/stdin /etc/cryptsetup-keys.d/crypthome.key</code></li>
+<li><code>cryptsetup -v luksAddKey /dev/nvme0n1p3 /etc/cryptsetup-keys.d/crypthome.key</code></li>
+</ul>
+</li>
+<li>
+<p>Set root password</p>
+<ul>
+<li><code>passwd</code></li>
+</ul>
+</li>
+<li>
+<p>Install <code>grub</code> and <code>efibootmgr</code> (if not installed with <code>pacstrap</code>)</p>
+<ul>
+<li><code>pacman -S grub efibootmgr</code></li>
+</ul>
+</li>
+<li>
+<p>Install bootloader</p>
+<ul>
+<li><code>grub-install --target=x86_64_efi --efi-directory=/boot --bootloader-id=GRUB</code></li>
+</ul>
+</li>
+<li>
+<p>Configure GRUB</p>
+<ul>
+<li>Determine UUID of LUKS device (FSTYPE: crypto_LUKS) containing the encrypted root partition
+<ul>
+<li><code>lsblk -f</code></li>
+</ul>
+</li>
+<li>Edit <code>/etc/default/grub</code> with the following:
+<ul>
+<li><code>GRUB_ENABLE_CRYPTODISK=y</code></li>
+<li><code>GRUB_CMDLINE_LINUX=&quot;cryptdevice=UUID=UUID_of_LUKS_device root=dev/mapper/&lt;cryptroot&gt;&quot;</code></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>Edit <code>/etc/crypttab</code> to append:</p>
+<ul>
+<li>For Option #1: Encrypted <code>/boot</code>
+<ul>
+<li><code>crypthome         UUID=UUID_of_LUKS_DEVICE      /etc/cryptsetup-keys.d/crypthome.key</code></li>
+</ul>
+</li>
+<li>For Option #2: Non-Encrypted <code>/boot</code>
+<ul>
+<li><code>cryptboot         UUID=UUID_of_LUKS_DEVICE      /etc/cryptsetup-keys.d/cryptboot.key</code></li>
+<li><code>crypthome         UUID=UUID_of_LUKS_DEVICE      /etc/cryptsetup-keys.d/crypthome.key</code></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>Generate /boot/grub/grub.cfg</p>
+<ul>
+<li><code>grub-mkconfig -o /boot/grub/grub.cfg</code></li>
+</ul>
+</li>
+<li>
+<p>Add user and password</p>
+<ul>
+<li><code>useradd -m user</code>
+<ul>
+<li>Using the <code>-m</code> option creates the home directory and sets the proper permissions</li>
+</ul>
+</li>
+<li><code>passwd user</code></li>
+</ul>
+</li>
+<li>
+<p>Configure network tools</p>
+<ul>
+<li>Create <code>/etc/iwd/main.conf</code>
+<ul>
+<li>Append the following to enable built-in DHCP functionality via <code>sysetmd-resolved</code>:
+<pre><code>[General]
+EnableNetworkConfiguration=true
+</code></pre>
+</li>
+</ul>
+</li>
+<li>Start and enable network services:
+<code>systemctl enable --now iwd.service</code>
+<code>systemctl enable --now systemd-resolved.service</code></li>
+</ul>
+</li>
+<li>
+<p>(Optional) Edit <code>/etc/vconsole.conf</code> to add larger font</p>
+<ul>
+<li>Regenerate initramfs with <code>mkinitcpio -P</code> to ensure console font is loaded early in boot sequence</li>
+</ul>
+</li>
+<li>
+<p>(Optional) For Nvidia GPU (RTX family)</p>
+<ul>
+<li>Install <code>linux-headers</code> if using nvidia DKMS drivers</li>
+</ul>
+</li>
+<li>
+<p>(Optional) Enable <code>vi</code> mode in the terminal</p>
+<ul>
+<li>For interactive shell (<code>bash</code>)
+<ul>
+<li>Append <code>set -o vi</code> to <code>.bashrc</code></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>(Optional) Enable <a href="https://wiki.archlinux.org/title/Sudo#Enable_insults">insults</a> for <code>sudo</code></p>
+</li>
+<li>
+<p>Reboot and enjoy!!</p>
+</li>
+</ol></div>
+        <br />
+        <div class="footer">Antonio Redekop © 2024</div>
+      </div>
+    </div>
+  </body>
+</html>
