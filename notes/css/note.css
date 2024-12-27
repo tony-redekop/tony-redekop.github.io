@@ -120,10 +120,18 @@ li {
   html {
     font-size: .5rem;
   }
+  li {
+      margin-bottom: 1rem;
+      margin-top: 1rem;
+  }
 }
 
 @media (max-width: 1000px) {
   .layout-main {
     max-width: calc(100vw - 4rem);
+  }
+  li {
+      margin-bottom: 1rem;
+      margin-top: 1rem;
   }
 }
