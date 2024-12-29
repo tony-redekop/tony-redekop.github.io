@@ -46,7 +46,7 @@ h3 a {
 }
 
 pre {
-  margin: 0 0 1rem 0;
+  margin: 0rem 0 1rem 0;
   background-color: #f8f8f8;
   border: 1px solid #e2e8f0;
   border-left: 4px solid #2b6cb0;
@@ -100,38 +100,32 @@ p {
 }
 
 ul, ol {
+    line-height: 1.4;
     margin-left: 1rem;
-    margin-bottom: 1rem;
     padding-left: 1rem; /* Add padding to align with headers */
-    /* padding-bottom: 1rem; */
+    margin-bottom: 1rem;
 }
 
-ul ul {
-    margin-bottom: 0rem;
-    padding-bottom: 0rem;
-}
+/* li { */
+/*    margin-bottom: 0rem; */
+/* } */
 
-li {
+li > ol, li > ul {
     margin-bottom: .5rem;
-    margin-top: .5rem;
+}
+
+li code {
+    line-height: 2.0;
 }
 
 @media (max-width: 600px) {
   html {
     font-size: .5rem;
   }
-  li {
-      margin-bottom: 1rem;
-      margin-top: 1rem;
-  }
 }
 
 @media (max-width: 1000px) {
   .layout-main {
     max-width: calc(100vw - 4rem);
-  }
-  li {
-      margin-bottom: 1rem;
-      margin-top: 1rem;
   }
 }
