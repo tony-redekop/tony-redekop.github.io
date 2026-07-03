@@ -1,1 +1,3 @@
 redekop.dev
+
+public blog
